@@ -94,7 +94,7 @@ async function attachSession(id) {
     if (!container) continue;
 
     // Spawn PTY if it doesn't exist yet
-    await window.pty.spawn(pane.id, { cwd: pane.cwd });
+    await window.pty.spawn(pane.id, {});
 
     // Create xterm instance attached to the PTY
     createTerminal(pane.id, container);

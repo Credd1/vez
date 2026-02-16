@@ -20,6 +20,12 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+
+  // Log renderer console messages to stdout for debugging
+  win.webContents.on('console-message', (event) => {
+    const prefix = ['LOG', 'WARN', 'ERR'][event.level] || 'LOG';
+    console.log(`[renderer:${prefix}] ${event.message}`);
+  });
 }
 
 // ── PTY IPC ──
