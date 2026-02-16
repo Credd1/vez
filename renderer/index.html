@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><head><title>Terminal Manager</title></head>
+<body style="background:#0a0a0c;color:#c8ccd4;font-family:monospace">
+  <h1>Terminal Manager</h1>
+  <pre id="out"></pre>
+  <script>
+    (async () => {
+      await window.pty.spawn('test-1', {});
+      const cleanup = window.pty.onData('test-1', (data) => {
+        document.getElementById('out').textContent += data;
+      });
+      // Send a command to verify PTY works
+      setTimeout(() => window.pty.write('test-1', 'echo hello-from-pty\r'), 500);
+    })();
+  </script>
+</body></html>
