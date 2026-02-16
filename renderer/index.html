@@ -1,16 +1,45 @@
 <!DOCTYPE html>
-<html><head><title>Terminal Manager</title></head>
-<body style="background:#0a0a0c;color:#c8ccd4;font-family:monospace">
-  <h1>Terminal Manager</h1>
-  <pre id="out"></pre>
-  <script>
-    (async () => {
-      await window.pty.spawn('test-1', {});
-      const cleanup = window.pty.onData('test-1', (data) => {
-        document.getElementById('out').textContent += data;
-      });
-      // Send a command to verify PTY works
-      setTimeout(() => window.pty.write('test-1', 'echo hello-from-pty\r'), 500);
-    })();
-  </script>
-</body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
+  <title>Claude Code Terminal Manager</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="../node_modules/xterm/css/xterm.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo"></div>
+    <h1>Sessions</h1>
+  </div>
+  <div class="session-list" id="sessionList"></div>
+  <div class="sidebar-footer">
+    <button class="new-session-btn" id="newSessionBtn">
+      <span>+</span> New Session
+    </button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="activeSessionLabel">No session</span>
+    <div class="topbar-status">
+      <div class="status-indicator">
+        <div class="dot" id="statusDot" style="background:var(--text-muted)"></div>
+        <span id="statusText">0 active</span>
+      </div>
+    </div>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<script src="terminal.js"></script>
+<script src="sidebar.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
