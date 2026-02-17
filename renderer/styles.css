@@ -775,8 +775,8 @@ body {
 .grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
   gap: 3px;
   background: var(--bg-deep);
   padding: 3px;

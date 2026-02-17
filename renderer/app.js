@@ -57,10 +57,11 @@ function removePane(sessionId, paneIndex) {
   if (!pane) return;
 
   destroyTerminal(pane.id);
-  window.pty.kill(pane.id);
+  try { window.pty.kill(pane.id); } catch (_) { /* PTY may already be dead */ }
   session.panes.splice(paneIndex, 1);
 
   if (session.panes.length === 0) {
+    // panes array is empty so removeSession's cleanup loop is a no-op
     removeSession(sessionId);
     return;
   }
@@ -131,16 +132,13 @@ async function attachSession(id) {
   for (let i = 0; i < session.panes.length; i++) {
     const pane = session.panes[i];
     const container = paneEls[i];
-    console.log('[attach]', i, pane.id, 'container:', !!container);
     if (!container) continue;
 
     // Spawn PTY if it doesn't exist yet
     await window.pty.spawn(pane.id, {});
-    console.log('[attach] spawned', pane.id);
 
     // Create xterm instance attached to the PTY
     createTerminal(pane.id, container);
-    console.log('[attach] terminal created', pane.id);
   }
 
   // Focus the first pane
