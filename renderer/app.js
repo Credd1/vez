@@ -14,28 +14,64 @@ function generateId() {
   return `session-${nextSessionId++}`;
 }
 
-function generatePaneIds(sessionId) {
-  return [0, 1, 2, 3].map((i) => `${sessionId}:pane-${i}`);
+function makePaneId(sessionId, index) {
+  return `${sessionId}:pane-${index}`;
 }
 
 // ── Session CRUD ──
 
 function addSession() {
   const id = generateId();
-  const paneIds = generatePaneIds(id);
+  const paneId = makePaneId(id, 0);
   const session = {
     id,
     name: `session ${nextSessionId - 1}`,
     status: 'live',
-    panes: paneIds.map((paneId) => ({
-      id: paneId,
-      ptyId: paneId,
-      cwd: '~',
-    })),
+    nextPaneIndex: 1,
+    panes: [{ id: paneId, ptyId: paneId, cwd: '~' }],
   };
   sessions.push(session);
   selectSession(id);
   return session;
+}
+
+function addPane(sessionId) {
+  const session = sessions.find((s) => s.id === sessionId);
+  if (!session || session.panes.length >= 4) return;
+
+  detachCurrentTerminals();
+
+  const paneId = makePaneId(sessionId, session.nextPaneIndex++);
+  session.panes.push({ id: paneId, ptyId: paneId, cwd: '~' });
+
+  render();
+  attachSession(sessionId);
+  focusPane(session.panes.length - 1);
+}
+
+function removePane(sessionId, paneIndex) {
+  const session = sessions.find((s) => s.id === sessionId);
+  if (!session) return;
+
+  const pane = session.panes[paneIndex];
+  if (!pane) return;
+
+  destroyTerminal(pane.id);
+  try { window.pty.kill(pane.id); } catch (_) { /* PTY may already be dead */ }
+  session.panes.splice(paneIndex, 1);
+
+  if (session.panes.length === 0) {
+    // panes array is empty so removeSession's cleanup loop is a no-op
+    removeSession(sessionId);
+    return;
+  }
+
+  detachCurrentTerminals();
+  if (focusedPaneIndex >= session.panes.length) {
+    focusedPaneIndex = session.panes.length - 1;
+  }
+  render();
+  attachSession(sessionId);
 }
 
 function removeSession(id) {
@@ -96,16 +132,13 @@ async function attachSession(id) {
   for (let i = 0; i < session.panes.length; i++) {
     const pane = session.panes[i];
     const container = paneEls[i];
-    console.log('[attach]', i, pane.id, 'container:', !!container);
     if (!container) continue;
 
     // Spawn PTY if it doesn't exist yet
     await window.pty.spawn(pane.id, {});
-    console.log('[attach] spawned', pane.id);
 
     // Create xterm instance attached to the PTY
     createTerminal(pane.id, container);
-    console.log('[attach] terminal created', pane.id);
   }
 
   // Focus the first pane
@@ -161,7 +194,14 @@ function renderGrid() {
     return;
   }
 
-  grid.innerHTML = session.panes
+  const paneCount = session.panes.length;
+  grid.setAttribute('data-pane-count', paneCount);
+
+  const closeBtn = paneCount > 1
+    ? `<button class="pane-close-btn" title="Close pane"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg></button>`
+    : '';
+
+  let html = session.panes
     .map(
       (p, i) => {
         const quickFolders = recentFolders.slice(0, 3).map((f) => {
@@ -176,12 +216,25 @@ function renderGrid() {
         <div class="pane-quick-folders">${quickFolders}</div>
         <button class="pane-folder-btn" data-pane-index="${i}" title="Select folder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
         <div class="pane-badge">\u2325${i + 1}</div>
+        ${closeBtn}
       </div>
       <div class="pane-body" id="pane-container-${i}"></div>
     </div>`;
       }
     )
     .join('');
+
+  // Add pane placeholder when under 4
+  if (paneCount < 4) {
+    html += `
+    <div class="pane-add" id="addPaneBtn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
+      <span>Add pane</span>
+      <span class="pane-add-hint">\u2325\\</span>
+    </div>`;
+  }
+
+  grid.innerHTML = html;
 
   // Click to focus pane
   grid.querySelectorAll('.pane').forEach((el) => {
@@ -208,6 +261,22 @@ function renderGrid() {
       applyFolder(session, idx, folder);
     });
   });
+
+  // Close pane buttons
+  grid.querySelectorAll('.pane-close-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const paneEl = btn.closest('.pane');
+      const idx = parseInt(paneEl.dataset.paneIndex);
+      removePane(session.id, idx);
+    });
+  });
+
+  // Add pane button
+  const addPaneBtn = document.getElementById('addPaneBtn');
+  if (addPaneBtn) {
+    addPaneBtn.addEventListener('click', () => addPane(session.id));
+  }
 }
 
 function updateTopbar() {
@@ -224,10 +293,11 @@ function updateTopbar() {
     return;
   }
 
-  label.textContent = `${session.name} \u2014 ${session.panes.length} panes`;
+  const pc = session.panes.length;
+  label.textContent = `${session.name} \u2014 ${pc} ${pc === 1 ? 'pane' : 'panes'}`;
   dot.style.background = 'var(--green)';
   dot.style.boxShadow = '0 0 6px var(--green)';
-  text.textContent = `${session.panes.length} active`;
+  text.textContent = `${pc} active`;
 }
 
 // ── Usage stats ──
@@ -436,24 +506,37 @@ function closeFolderDropdown() {
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
 
-  // Alt+1-4 focus panes
+  // Alt+1-4 focus panes (clamped to actual count)
   if (e.altKey && e.key >= '1' && e.key <= '4') {
     e.preventDefault();
-    focusPane(parseInt(e.key) - 1);
+    const session = sessions.find((s) => s.id === activeSessionId);
+    const idx = parseInt(e.key) - 1;
+    if (session && idx < session.panes.length) focusPane(idx);
   }
 
-  // Cmd+Arrow spatial pane navigation (2x2 grid: 0=TL, 1=TR, 2=BL, 3=BR)
+  // Alt+\ add pane
+  if (e.altKey && e.key === '\\') {
+    e.preventDefault();
+    if (activeSessionId) addPane(activeSessionId);
+  }
+
+  // Cmd+Arrow spatial pane navigation (adapts to pane count)
   if (e.metaKey && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
     e.preventDefault();
-    const col = focusedPaneIndex % 2;
-    const row = Math.floor(focusedPaneIndex / 2);
+    const session = sessions.find((s) => s.id === activeSessionId);
+    if (!session) return;
+    const count = session.panes.length;
+    const cols = count <= 1 ? 1 : 2;
+    const col = focusedPaneIndex % cols;
+    const row = Math.floor(focusedPaneIndex / cols);
+    const maxRow = Math.ceil(count / cols) - 1;
     let nc = col, nr = row;
     if (e.key === 'ArrowLeft')  nc = Math.max(0, col - 1);
-    if (e.key === 'ArrowRight') nc = Math.min(1, col + 1);
+    if (e.key === 'ArrowRight') nc = Math.min(cols - 1, col + 1);
     if (e.key === 'ArrowUp')    nr = Math.max(0, row - 1);
-    if (e.key === 'ArrowDown')  nr = Math.min(1, row + 1);
-    const next = nr * 2 + nc;
-    if (next !== focusedPaneIndex) focusPane(next);
+    if (e.key === 'ArrowDown')  nr = Math.min(maxRow, row + 1);
+    const next = nr * cols + nc;
+    if (next < count && next !== focusedPaneIndex) focusPane(next);
   }
 
   // Alt+N new session
