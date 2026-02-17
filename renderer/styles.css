@@ -782,6 +782,68 @@ body {
   padding: 3px;
 }
 
+/* Dynamic grid layouts by pane count */
+.grid[data-pane-count="1"] { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.grid[data-pane-count="2"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+.grid[data-pane-count="3"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.grid[data-pane-count="4"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+/* ── Add pane placeholder ── */
+.pane-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  user-select: none;
+}
+
+.pane-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.pane-add:hover svg { stroke: var(--accent); }
+
+.pane-add-hint {
+  font-size: 10px;
+  opacity: 0.5;
+  padding: 1px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.pane-add:hover .pane-add-hint {
+  border-color: rgba(99, 102, 241, 0.3);
+  opacity: 0.8;
+}
+
+/* ── Pane close button ── */
+.pane-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  opacity: 0;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.pane-header:hover .pane-close-btn { opacity: 0.5; }
+.pane-close-btn:hover { opacity: 1 !important; color: var(--red); background: var(--red-glow); }
+
 /* ── Terminal pane ── */
 .pane {
   background: var(--bg-pane);
