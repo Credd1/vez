@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
   <title>Claude Code Terminal Manager</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="styles.css">
@@ -13,13 +13,23 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <div class="logo"></div>
-    <h1>Sessions</h1>
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M2 4L10 2L18 4L10 18Z" fill="var(--accent)" opacity="0.85"/>
+        <path d="M10 2L18 4L10 10Z" fill="var(--accent)" opacity="0.5"/>
+      </svg>
+    </div>
+    <h1>Vez</h1>
   </div>
+  <button class="sidebar-collapse-btn" id="sidebarToggle" title="Toggle sidebar (⌘B)">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="9,3 5,7 9,11"/></svg>
+  </button>
   <div class="session-list" id="sessionList"></div>
+  <div class="usage-panel" id="usagePanel"></div>
   <div class="sidebar-footer">
     <button class="new-session-btn" id="newSessionBtn">
-      <span>+</span> New Session
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="7" y1="3" x2="7" y2="11"/><line x1="3" y1="7" x2="11" y2="7"/></svg>
+      New Session
     </button>
   </div>
 </aside>
@@ -27,6 +37,12 @@
 <main class="main">
   <div class="topbar">
     <span class="topbar-title" id="activeSessionLabel">No session</span>
+    <div class="topbar-actions">
+      <button class="topbar-btn" id="vaultToggle" title="Toggle Vault (⌥V)">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5C2 2.67 2.67 2 3.5 2H6L7.5 3.5H11.5C12.33 3.5 13 4.17 13 5V11.5C13 12.33 12.33 13 11.5 13H3.5C2.67 13 2 12.33 2 11.5V3.5Z"/></svg>
+        <span>Vault</span>
+      </button>
+    </div>
     <div class="topbar-status">
       <div class="status-indicator">
         <div class="dot" id="statusDot" style="background:var(--text-muted)"></div>
@@ -34,7 +50,44 @@
       </div>
     </div>
   </div>
+  <div class="main-content">
   <div class="grid" id="grid"></div>
+  <div class="vault-panel hidden" id="vaultPanel">
+    <div class="vault-panel-header">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5C2 2.67 2.67 2 3.5 2H6L7.5 3.5H10.5C11.33 3.5 12 4.17 12 5V10.5C12 11.33 11.33 12 10.5 12H3.5C2.67 12 2 11.33 2 10.5V3.5Z"/></svg>
+      <span>Vault</span>
+      <button class="vault-panel-btn" id="vaultRefreshBtn" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 7a5.5 5.5 0 0 1 9.62-3.5M12.5 7a5.5 5.5 0 0 1-9.62 3.5"/><polyline points="11,1 11.5,4 8.5,3.5"/><polyline points="3,13 2.5,10 5.5,10.5"/></svg>
+      </button>
+      <button class="vault-panel-close" id="vaultPanelClose">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
+      </button>
+    </div>
+    <div class="vault-search-bar">
+      <svg class="vault-search-icon" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6" cy="6" r="4.5"/><line x1="9.5" y1="9.5" x2="13" y2="13"/></svg>
+      <input type="text" class="vault-search-input" id="vaultSearch" placeholder="Filter files..." spellcheck="false">
+    </div>
+    <div class="vault-tree-toggle" id="vaultTreeToggle">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3,2 7,5 3,8"/></svg>
+      <span>Files</span>
+    </div>
+    <div class="vault-tree" id="vaultTree"></div>
+    <div class="vault-empty-state" id="vaultEmptyState">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Click a file to preview</span>
+    </div>
+    <div class="file-viewer hidden" id="fileViewer">
+      <div class="file-viewer-header">
+        <span class="file-viewer-title" id="fileViewerTitle"></span>
+        <button class="file-viewer-close" id="fileViewerClose">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
+        </button>
+      </div>
+      <div class="file-viewer-body" id="fileViewerBody"></div>
+      <textarea class="file-viewer-editor hidden" id="fileViewerEditor" spellcheck="false"></textarea>
+    </div>
+  </div>
+  </div>
 </main>
 
 <script src="../node_modules/xterm/lib/xterm.js"></script>
@@ -42,6 +95,7 @@
 <script src="../node_modules/@xterm/addon-web-links/lib/addon-web-links.js"></script>
 <script src="terminal.js"></script>
 <script src="sidebar.js"></script>
+<script src="vault.js"></script>
 <script src="app.js"></script>
 
 </body>

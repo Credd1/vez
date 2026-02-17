@@ -1,28 +1,45 @@
 // terminal.js — xterm.js wrapper
 
 const XTERM_THEME = {
-  background: '#0d0d10',
-  foreground: '#c8ccd4',
-  cursor: '#4a6fa5',
-  selectionBackground: '#4a6fa520',
-  black: '#0d0d10',
-  red: '#b05050',
-  green: '#5faa6e',
-  yellow: '#c49a3c',
-  blue: '#4a6fa5',
-  magenta: '#8a5aa5',
-  cyan: '#4a8a8a',
-  white: '#c8ccd4',
+  background: '#0c0c10',
+  foreground: '#d4d7e0',
+  cursor: '#6366f1',
+  cursorAccent: '#0c0c10',
+  selectionBackground: 'rgba(99, 102, 241, 0.25)',
+  selectionForeground: '#ffffff',
+  black: '#1a1a24',
+  brightBlack: '#3a3a4a',
+  red: '#f87171',
+  brightRed: '#fca5a5',
+  green: '#34d399',
+  brightGreen: '#6ee7b7',
+  yellow: '#fbbf24',
+  brightYellow: '#fde68a',
+  blue: '#60a5fa',
+  brightBlue: '#93c5fd',
+  magenta: '#c084fc',
+  brightMagenta: '#d8b4fe',
+  cyan: '#22d3ee',
+  brightCyan: '#67e8f9',
+  white: '#e2e4ea',
+  brightWhite: '#f8fafc',
 };
 
 const XTERM_OPTS = {
   theme: XTERM_THEME,
   fontFamily: 'JetBrains Mono, monospace',
   fontSize: 12,
-  cursorStyle: 'block',
+  fontWeight: '400',
+  fontWeightBold: '600',
+  letterSpacing: 0.3,
+  lineHeight: 1.25,
+  cursorStyle: 'bar',
+  cursorWidth: 2,
   cursorBlink: true,
   allowTransparency: true,
-  scrollback: 5000,
+  scrollback: 10000,
+  smoothScrollDuration: 100,
+  minimumContrastRatio: 4.5,
 };
 
 // Active terminals: Map<paneId, { term, fitAddon, cleanup }>
@@ -57,9 +74,11 @@ function createTerminal(paneId, containerEl) {
     window.pty.write(paneId, data);
   });
 
-  // Handle PTY exit
+  // Handle PTY exit — guard against disposed terminal
   window.pty.onExit(paneId, () => {
-    term.write('\r\n\x1b[90m[process exited]\x1b[0m\r\n');
+    if (terminals.has(paneId)) {
+      term.write('\r\n\x1b[90m[process exited]\x1b[0m\r\n');
+    }
   });
 
   // Resize observer

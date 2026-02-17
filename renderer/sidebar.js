@@ -6,19 +6,25 @@ function renderSessions(sessions, activeSessionId, callbacks) {
   sessions.forEach((s) => groups[s.status].push(s));
 
   const labels = { live: 'Active', idle: 'Idle', dead: 'Archived' };
+  const statusIcons = {
+    live: '<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="3" fill="var(--green)"/><circle cx="5" cy="5" r="5" fill="var(--green)" opacity="0.2"><animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/></circle></svg>',
+    idle: '<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="3" fill="var(--amber)"/></svg>',
+    dead: '<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="3" fill="var(--text-muted)"/></svg>'
+  };
   let html = '';
 
   for (const [status, items] of Object.entries(groups)) {
     if (!items.length) continue;
-    html += `<div class="session-group-label">${labels[status]}</div>`;
+    html += `<div class="session-group-label">${labels[status]}<span class="session-group-count">${items.length}</span></div>`;
     items.forEach((s) => {
       const active = s.id === activeSessionId ? 'active' : '';
+      const paneLabel = s.panes.length === 1 ? '1 pane' : `${s.panes.length} panes`;
       html += `
         <div class="session-item ${active}" data-id="${s.id}">
-          <div class="session-dot ${s.status}"></div>
+          <div class="session-dot ${s.status}">${statusIcons[s.status]}</div>
           <div class="session-info">
             <div class="session-name" data-name-id="${s.id}">${esc(s.name)}</div>
-            <div class="session-meta">${s.panes.length} panes</div>
+            <div class="session-meta">${paneLabel}</div>
           </div>
           <div class="session-actions">
             <button class="rename-btn" data-id="${s.id}" title="Rename">&#9998;</button>
@@ -64,7 +70,10 @@ function startRename(id, sessions, callbacks) {
   input.focus();
   input.select();
 
+  let committed = false;
   const commit = () => {
+    if (committed) return;
+    committed = true;
     const newName = input.value.trim() || session.name;
     callbacks.onRename(id, newName);
   };

@@ -1,1 +1,13 @@
 node_modules/
+.DS_Store
+Thumbs.db
+dist/
+out/
+*.dmg
+*.log
+npm-debug.log*
+.env
+.vez-config.json
+.vscode/
+.idea/
+*.swp

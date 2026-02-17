@@ -24,4 +24,28 @@ contextBridge.exposeInMainWorld('pty', {
     const listener = () => callback();
     ipcRenderer.once(channel, listener);
   },
+  selectFolder() {
+    return ipcRenderer.invoke('dialog:selectFolder');
+  },
+  getUsageStats() {
+    return ipcRenderer.invoke('app:getUsageStats');
+  },
+  getCpuUsage() {
+    return ipcRenderer.invoke('app:getCpuUsage');
+  },
+  vaultRoot() {
+    return ipcRenderer.invoke('vault:root');
+  },
+  vaultTree(dirPath) {
+    return ipcRenderer.invoke('vault:tree', dirPath);
+  },
+  vaultRead(filePath) {
+    return ipcRenderer.invoke('vault:read', filePath);
+  },
+  vaultWrite(filePath, content) {
+    return ipcRenderer.invoke('vault:write', { filePath, content });
+  },
+  vaultOpen(filePath) {
+    return ipcRenderer.invoke('vault:open', filePath);
+  },
 });

@@ -1,19 +1,30 @@
 {
-  "name": "terminal-manager",
+  "name": "vez",
   "version": "0.1.0",
+  "description": "4-pane Electron terminal manager for Claude Code",
+  "author": "credd",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/credd/vez"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "private": true,
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "dev": "VEZ_DEV=1 electron .",
     "rebuild": "electron-rebuild"
   },
   "devDependencies": {
-    "electron": "^40.4.1"
+    "electron": "^40.4.1",
+    "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-web-links": "^0.12.0",
-    "electron-rebuild": "^3.2.9",
     "node-pty": "^1.1.0",
     "xterm": "^5.3.0"
   }
